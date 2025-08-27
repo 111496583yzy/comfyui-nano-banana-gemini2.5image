@@ -40,10 +40,15 @@ except ImportError as e:
     IMAGE_EDIT_DISPLAY_MAPPINGS = {}
     IMAGE_EDIT_AVAILABLE = False
 
-# 移除对镜像站节点的引用
-MIRROR_AVAILABLE = False
-MIRROR_MAPPINGS = {}
-MIRROR_DISPLAY_MAPPINGS = {}
+# 添加对Comfly镜像站节点的引用
+try:
+    from .comfly_mirror_nodes import NODE_CLASS_MAPPINGS as COMFLY_MIRROR_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as COMFLY_MIRROR_DISPLAY_MAPPINGS
+    COMFLY_MIRROR_AVAILABLE = True
+except ImportError as e:
+    print(f"Comfly Mirror nodes not available: {e}")
+    COMFLY_MIRROR_MAPPINGS = {}
+    COMFLY_MIRROR_DISPLAY_MAPPINGS = {}
+    COMFLY_MIRROR_AVAILABLE = False
 
 # 添加对Nano-banana节点的引用
 try:
@@ -77,6 +82,10 @@ if IMAGE_EDIT_AVAILABLE:
     NODE_CLASS_MAPPINGS.update(IMAGE_EDIT_MAPPINGS)
     NODE_DISPLAY_NAME_MAPPINGS.update(IMAGE_EDIT_DISPLAY_MAPPINGS)
 
+if COMFLY_MIRROR_AVAILABLE:
+    NODE_CLASS_MAPPINGS.update(COMFLY_MIRROR_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(COMFLY_MIRROR_DISPLAY_MAPPINGS)
+
 if NANO_BANANA_AVAILABLE:
     NODE_CLASS_MAPPINGS.update(NANO_BANANA_MAPPINGS)
     NODE_DISPLAY_NAME_MAPPINGS.update(NANO_BANANA_DISPLAY_MAPPINGS)
@@ -96,7 +105,9 @@ if REST_AVAILABLE:
     print("✅ REST API nodes available")
 if IMAGE_EDIT_AVAILABLE:
     print("✅ Image edit nodes available")
+if COMFLY_MIRROR_AVAILABLE:
+    print("✅ Comfly Mirror nodes available")
 if NANO_BANANA_AVAILABLE:
     print("✅ Nano-banana nodes available")
-if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not NANO_BANANA_AVAILABLE:
+if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not COMFLY_MIRROR_AVAILABLE and not NANO_BANANA_AVAILABLE:
     print("⚠️ No nodes available - check dependencies")
