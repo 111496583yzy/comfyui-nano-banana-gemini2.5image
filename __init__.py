@@ -50,16 +50,6 @@ except ImportError as e:
     COMFLY_MIRROR_DISPLAY_MAPPINGS = {}
     COMFLY_MIRROR_AVAILABLE = False
 
-# 添加对Nano-banana节点的引用
-try:
-    from .nano_banana_nodes import NODE_CLASS_MAPPINGS as NANO_BANANA_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as NANO_BANANA_DISPLAY_MAPPINGS
-    NANO_BANANA_AVAILABLE = True
-except ImportError as e:
-    print(f"Nano-banana nodes not available: {e}")
-    NANO_BANANA_MAPPINGS = {}
-    NANO_BANANA_DISPLAY_MAPPINGS = {}
-    NANO_BANANA_AVAILABLE = False
-
 # 批次节点已合并到图像编辑节点中
 
 # 合并所有节点映射
@@ -86,10 +76,6 @@ if COMFLY_MIRROR_AVAILABLE:
     NODE_CLASS_MAPPINGS.update(COMFLY_MIRROR_MAPPINGS)
     NODE_DISPLAY_NAME_MAPPINGS.update(COMFLY_MIRROR_DISPLAY_MAPPINGS)
 
-if NANO_BANANA_AVAILABLE:
-    NODE_CLASS_MAPPINGS.update(NANO_BANANA_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(NANO_BANANA_DISPLAY_MAPPINGS)
-
 # 批次处理功能已集成到图像编辑节点中
 
 # 导出给 ComfyUI
@@ -107,7 +93,5 @@ if IMAGE_EDIT_AVAILABLE:
     print("✅ Image edit nodes available")
 if COMFLY_MIRROR_AVAILABLE:
     print("✅ Comfly Mirror nodes available")
-if NANO_BANANA_AVAILABLE:
-    print("✅ Nano-banana nodes available")
-if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not COMFLY_MIRROR_AVAILABLE and not NANO_BANANA_AVAILABLE:
+if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not COMFLY_MIRROR_AVAILABLE:
     print("⚠️ No nodes available - check dependencies")

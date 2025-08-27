@@ -104,39 +104,6 @@ pip install -r requirements.txt
 - `edited_image`: 编辑后的图像 (IMAGE 类型)
 - `response_text`: API 响应文本
 
-### 镜像站文生图 (NanoBananaTextToImage)
-
-使用镜像站API进行文本到图像生成，基于 https://ai.comfly.chat 镜像站。
-
-**输入参数:**
-- `api_key`: API 密钥
-- `prompt`: 图像生成提示词
-- `model`: 模型名称 (默认: nano-banana)
-- `response_format`: 响应格式 (url 或 b64_json)
-- `seed`: 随机种子 (-1表示使用随机种子)
-
-**输出:**
-- `image`: 生成的图像 (IMAGE 类型)
-- `info`: API 响应文本
-- `seed`: 使用的随机种子值
-
-### 镜像站图生图 (NanoBananaImageToImage)
-
-使用镜像站API进行图像编辑，支持多图处理。
-
-**输入参数:**
-- `api_key`: API 密钥
-- `images`: 输入图像 (IMAGE 类型)
-- `prompt`: 编辑指令
-- `model`: 模型名称 (默认: nano-banana)
-- `response_format`: 响应格式 (url 或 b64_json)
-- `seed`: 随机种子 (-1表示使用随机种子)
-
-**输出:**
-- `image`: 编辑后的图像 (IMAGE 类型)
-- `info`: API 响应文本
-- `seed`: 使用的随机种子值
-
 ## 🔧 技术特性
 
 ### 智能重试机制
@@ -202,51 +169,14 @@ api_key = "your_api_key"
 prompt = "A beautiful sunset over the ocean"
 ```
 
-### 使用镜像站API
-
-```python
-# 在 ComfyUI 中添加 "镜像站文生图" 节点
-# 使用镜像站API:
-api_key = "your_api_key"
-prompt = "一只可爱的猫咪"
-model = "nano-banana"
-response_format = "b64_json"
-seed = 42  # 使用固定种子以获得一致的结果
-```
-
 ## 🌐 支持的镜像站
 
-插件支持两种API格式的镜像站：
+插件支持以下API格式的镜像站：
 
 ### Gemini 原生格式镜像站
 - `https://ai.comfly.chat` - ComflyAI 镜像站
 - `https://api.openai-proxy.com` - 代理服务
 - 其他兼容 Gemini API 格式的镜像服务
-
-### 镜像站API (OpenAI兼容格式)
-- `https://ai.comfly.chat` - 支持OpenAI兼容格式的镜像站
-- 文生图 API: `/v1/images/generations`
-- 图生图 API: `/v1/images/edits`
-- 模型: gemini-2.5-flash-image-preview
-
-### 镜像站API配置说明
-
-1. **API 地址**: 默认使用 `https://ai.comfly.chat`
-   - 文生图: `https://ai.comfly.chat/v1/images/generations`
-   - 图生图: `https://ai.comfly.chat/v1/images/edits`
-
-2. **模型选择**: 使用 `nano-banana` 模型
-   - 基于 Gemini 2.5 Flash Image Preview
-   - 支持中文和英文提示词
-   - 优化的图像生成和编辑能力
-
-3. **响应格式**: 
-   - `b64_json`: 返回 base64 编码的图片数据 (推荐)
-   - `url`: 返回图片 URL 链接
-
-4. **随机种子**:
-   - `-1`: 使用随机种子 (每次生成不同结果)
-   - 特定值: 使用固定种子 (可重现相同结果)
 
 ## ⚠️ 注意事项
 
