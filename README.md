@@ -7,6 +7,8 @@
 - 🎨 **图像生成**: 使用 Gemini 模型从文本提示生成高质量图像
 - 🖼️ **图像编辑**: 基于输入图像和文本指令进行智能编辑
 - 🌐 **镜像站支持**: 支持自定义API地址，适配国内镜像站和代理服务
+- 🤖 **多平台AI**: 支持OpenRouter统一接口，访问GPT-4、Claude、Llama等多种模型
+- 👁️ **视觉分析**: 强大的图像理解和分析能力
 - 🔄 **智能重试**: 内置限流处理和错误恢复机制
 - 🚀 **多模型支持**: 支持最新的 Gemini 2.5 和 2.0 模型
 - 🛡️ **稳定性**: 增强的错误处理和超时管理
@@ -21,9 +23,24 @@ pip install -r requirements.txt
 
 ### 获取 API Key
 
+#### Google Gemini API Key
 1. 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. 创建新的 API Key
-3. 在节点中输入你的 API Key
+3. 在Gemini节点中输入你的 API Key
+
+#### OpenRouter API Key
+1. 访问 [OpenRouter](https://openrouter.ai/keys)
+2. 注册账户并创建 API Key
+3. 在OpenRouter节点中输入你的 API Key (格式: sk-or-v1-...)
+
+#### 关于 site_url 参数
+- **用途**: OpenRouter用于统计API使用来源和计费追踪
+- **可选**: 不填写也能正常工作
+- **建议**: 填写你的项目网站URL，有助于：
+  - 获得更好的技术支持
+  - 参与OpenRouter的开发者计划
+  - 透明的使用统计
+- **示例**: `https://github.com/your-username/your-project`
 
 ## 📦 节点说明
 
@@ -104,6 +121,97 @@ pip install -r requirements.txt
 - `edited_image`: 编辑后的图像 (IMAGE 类型)
 - `response_text`: API 响应文本
 
+### OpenRouter 视觉分析 (OpenRouterMirror)
+
+使用OpenRouter统一接口访问多种AI模型进行图像分析和理解。
+
+**输入参数:**
+- `api_key`: OpenRouter API 密钥
+- `prompt`: 分析指令或问题
+- `model`: 选择模型 (支持GPT-4o、Claude-3.5、Gemini、Llama等)
+- `max_tokens`: 最大输出令牌数 (1-8192)
+- `temperature`: 创造性控制 (0.0-2.0)
+- `top_p`: 采样控制 (0.0-1.0)
+- `images`: 输入图像 (可选，IMAGE 类型)
+- `site_url`: 网站URL (可选，用于统计)
+- `app_name`: 应用名称 (可选，默认ComfyUI)
+
+**输出:**
+- `response_text`: AI分析结果文本
+- `model_info`: 模型使用信息和token统计
+
+### OpenRouter 文本生成 (OpenRouterTextGeneration)
+
+使用OpenRouter接口进行纯文本生成，支持多种先进AI模型。
+
+**输入参数:**
+- `api_key`: OpenRouter API 密钥
+- `prompt`: 文本生成提示
+- `model`: 选择模型 (GPT-4o、Claude、Llama、Mistral等)
+- `max_tokens`: 最大输出令牌数 (1-8192)
+- `temperature`: 创造性控制 (0.0-2.0)
+- `top_p`: 采样控制 (0.0-1.0)
+- `system_prompt`: 系统提示 (可选)
+- `site_url`: 网站URL (可选)
+- `app_name`: 应用名称 (可选)
+
+**输出:**
+- `response_text`: 生成的文本内容
+- `model_info`: 模型使用信息和token统计
+
+### OpenRouter Gemini 图像生成 (OpenRouterGeminiImageGeneration)
+
+使用OpenRouter接口调用Google Gemini模型进行图像生成，专注于Gemini的多模态能力。
+
+**输入参数:**
+- `api_key`: OpenRouter API 密钥
+- `prompt`: 图像生成提示词
+- `model`: 选择Gemini模型
+  - `google/gemini-2.5-flash-image-preview` (推荐)
+  - `google/gemini-2.0-flash-preview-image-generation`
+- `temperature`: 创造性控制 (0.0-2.0)
+- `top_p`: 采样控制 (0.0-1.0)
+- `max_output_tokens`: 最大输出令牌数 (1-32768)
+- `site_url`: 网站URL (可选)
+- `app_name`: 应用名称 (可选)
+
+**输出:**
+- `generated_image`: 生成的图像 (IMAGE 类型)
+- `response_text`: Gemini的文本响应
+
+**特色功能:**
+- 专门针对Google Gemini模型优化
+- 支持Gemini的多模态输出格式
+- 同时返回图像和文本描述
+- 使用OpenRouter的统一API接口
+
+### OpenRouter 图像编辑 (OpenRouterImageEdit)
+
+使用OpenRouter接口对现有图像进行智能编辑和修改。
+
+**输入参数:**
+- `api_key`: OpenRouter API 密钥
+- `images`: 输入图像 (IMAGE 类型，支持批量)
+- `prompt`: 编辑指令 (如："让天空变成日落色彩"、"添加一只猫"等)
+- `model`: 选择AI模型 (GPT-4o、GPT-4o-mini、Gemini-2.5-flash)
+- `temperature`: 创造性控制 (0.0-2.0)
+- `top_p`: 采样控制 (0.0-1.0)
+- `max_tokens`: 最大输出令牌数 (1-8192，默认8192)
+- `site_url`: 网站URL (可选，用于统计，默认ComfyUI GitHub)
+- `app_name`: 应用名称 (可选，默认ComfyUI)
+
+**输出:**
+- `edited_image`: 编辑后的图像 (IMAGE 类型)
+- `edit_description`: 编辑过程的文字描述
+
+**编辑能力:**
+- 🎨 **风格转换**: 改变图像的艺术风格
+- 🌈 **色彩调整**: 修改颜色、亮度、对比度
+- ➕ **内容添加**: 在图像中添加新元素
+- ✂️ **内容移除**: 去除不需要的部分
+- 🔄 **场景变换**: 改变背景或环境
+- 📐 **构图优化**: 调整图像布局和比例
+
 ## 🔧 技术特性
 
 ### 智能重试机制
@@ -169,6 +277,53 @@ api_key = "your_api_key"
 prompt = "A beautiful sunset over the ocean"
 ```
 
+### 使用OpenRouter进行图像分析
+
+```python
+# 在 ComfyUI 中添加 "OpenRouter 视觉分析" 节点
+# 设置参数:
+api_key = "sk-or-v1-your_openrouter_api_key"
+prompt = "请详细描述这张图片中的内容，包括颜色、构图和情感表达"
+model = "openai/gpt-4o"  # 或其他支持视觉的模型
+```
+
+### 使用OpenRouter进行文本生成
+
+```python
+# 在 ComfyUI 中添加 "OpenRouter 文本生成" 节点
+# 设置参数:
+api_key = "sk-or-v1-your_openrouter_api_key"
+prompt = "写一首关于人工智能的诗"
+model = "anthropic/claude-3.5-sonnet"
+system_prompt = "你是一位富有创意的诗人"
+```
+
+### 使用OpenRouter进行Gemini图像生成
+
+```python
+# 在 ComfyUI 中添加 "OpenRouter 多模态图像生成" 节点
+# 设置参数:
+api_key = "sk-or-v1-your_openrouter_api_key"
+prompt = "Generate a majestic dragon flying over a mystical forest at sunset, highly detailed, fantasy art style"
+model = "google/gemini-2.5-flash-image-preview"  # 推荐的Gemini模型
+temperature = 1.0
+top_p = 0.95
+max_output_tokens = 8192
+```
+
+### 使用OpenRouter进行图像编辑
+
+```python
+# 在 ComfyUI 中添加 "OpenRouter 图像编辑" 节点
+# 连接输入图像并设置参数:
+api_key = "sk-or-v1-your_openrouter_api_key"
+prompt = "将这张图片的天空改成美丽的日落色彩，添加一些云朵"
+model = "openai/gpt-4o-mini"  # 推荐用于图像编辑
+temperature = 0.7
+max_tokens = 8192
+site_url = "https://your-project-website.com"  # 可选：你的项目网站
+```
+
 ## 🌐 支持的镜像站
 
 插件支持以下API格式的镜像站：
@@ -177,6 +332,20 @@ prompt = "A beautiful sunset over the ocean"
 - `https://ai.comfly.chat` - ComflyAI 镜像站
 - `https://api.openai-proxy.com` - 代理服务
 - 其他兼容 Gemini API 格式的镜像服务
+
+### OpenRouter 统一接口
+- `https://openrouter.ai` - OpenRouter 官方API
+- 支持多种AI模型：
+  - **文本/视觉模型**:
+    - **OpenAI**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo
+    - **Anthropic**: Claude-3.5-sonnet, Claude-3-haiku
+    - **Google**: Gemini-pro-1.5, Gemini-flash-1.5
+    - **Meta**: Llama-3.1-405b, Llama-3.1-70b, Llama-3.2-90b-vision
+    - **Qwen**: Qwen-2-vl-72b, Qwen-2-72b
+    - **Microsoft**: Phi-3.5-vision
+    - **Mistral**: Mistral-7b-instruct
+  - **图像生成模型**:
+    - **Google Gemini**: gemini-2.5-flash-image-preview, gemini-2.0-flash-preview-image-generation
 
 ## ⚠️ 注意事项
 
