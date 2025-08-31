@@ -168,10 +168,12 @@ pip install -r requirements.txt
 - `prompt`: 图像生成提示词
 - `model`: 选择Gemini模型
   - `google/gemini-2.5-flash-image-preview` (推荐)
+  - `google/gemini-2.5-flash-image-preview:free` (🆓 **免费模型**: 每天50张)
   - `google/gemini-2.0-flash-preview-image-generation`
 - `temperature`: 创造性控制 (0.0-2.0)
 - `top_p`: 采样控制 (0.0-1.0)
 - `max_output_tokens`: 最大输出令牌数 (1-32768)
+- `seed`: 随机种子 (0为自动随机，其他值用于可重复生成)
 - `site_url`: 网站URL (可选)
 - `app_name`: 应用名称 (可选)
 
@@ -184,6 +186,8 @@ pip install -r requirements.txt
 - 支持Gemini的多模态输出格式
 - 同时返回图像和文本描述
 - 使用OpenRouter的统一API接口
+- 🆓 **免费模型**: 支持`google/gemini-2.5-flash-image-preview:free`，每天可免费生成50张图片
+- 🎲 **随机种子控制**: 支持种子参数，可实现可重复的图像生成
 
 ### OpenRouter 图像编辑 (OpenRouterImageEdit)
 
@@ -345,7 +349,7 @@ site_url = "https://your-project-website.com"  # 可选：你的项目网站
     - **Microsoft**: Phi-3.5-vision
     - **Mistral**: Mistral-7b-instruct
   - **图像生成模型**:
-    - **Google Gemini**: gemini-2.5-flash-image-preview, gemini-2.0-flash-preview-image-generation
+    - **Google Gemini**: gemini-2.5-flash-image-preview, gemini-2.5-flash-image-preview:free (🆓 每天50张), gemini-2.0-flash-preview-image-generation
 
 ## ⚠️ 注意事项
 
@@ -353,6 +357,13 @@ site_url = "https://your-project-website.com"  # 可选：你的项目网站
 2. **网络连接**: 确保稳定的网络连接
 3. **图像大小**: 大图像可能需要更长处理时间
 4. **模型选择**: 不同模型有不同的特性和限制
+5. **免费模型限制**: 
+   - `google/gemini-2.5-flash-image-preview:free` 每天限制50张图片
+   - 免费配额重置时间以UTC时间为准
+6. **随机种子说明**:
+   - 设置为 0 时自动生成随机种子
+   - 相同种子+相同提示词可以生成相似的图像
+   - 不同模型的种子效果可能不同
 
 ## 🔍 故障排除
 
@@ -371,13 +382,46 @@ site_url = "https://your-project-website.com"  # 可选：你的项目网站
 - 检查网络连接
 - 增加超时时间设置
 
-## 📄 许可证
+**免费模型配额用完**
+- 等待次日UTC时间重置
+- 切换到付费模型
+- 检查OpenRouter账户余额
 
-本项目遵循开源许可证。使用前请确保遵守相关API的使用条款。
+**图像生成失败**
+- 确保提示词符合内容政策
+- 检查图像尺寸参数
+- 尝试不同的随机种子
+
+## 💡 使用技巧和最佳实践
+
+### 图像生成优化
+- **提示词优化**: 使用清晰、具体的描述词
+- **风格控制**: 可以在提示词中指定艺术风格，如"photorealistic", "anime style", "watercolor painting"
+- **细节控制**: 使用修饰词如"highly detailed", "8K resolution", "professional photography"
+
+### 种子使用策略
+- **实验阶段**: 使用随机种子(0)探索不同可能性
+- **微调阶段**: 固定种子值，仅调整提示词进行精细控制
+- **批量生成**: 使用不同种子生成多个变体
+
+### 模型选择建议
+- **快速测试**: 使用免费模型进行初步实验
+- **高质量输出**: 切换到付费模型获得更好效果
+- **成本控制**: 先用免费模型确定满意的提示词，再用付费模型生成最终结果
+
+### 工作流程建议
+1. 使用文本生成节点完善提示词
+2. 用免费图像生成模型测试效果
+3. 调整参数和种子值
+4. 切换到付费模型生成高质量图像
 
 ## 🤝 贡献
 
-欢迎提交 Issue 和 Pull Request 来改进这个项目！
+欢迎提交 Issues 和 Pull Requests 来改进这个项目！
+
+## 📄 许可证
+
+本项目遵循开源许可证。使用前请确保遵守相关API的使用条款。
 
 ---
 
