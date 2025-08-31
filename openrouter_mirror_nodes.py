@@ -138,6 +138,7 @@ class OpenRouterMirror:
                 "max_tokens": ("INT", {"default": 6664, "min": 1, "max": 6664}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "images": ("IMAGE",),
@@ -327,6 +328,7 @@ class OpenRouterTextGeneration:
                 "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 6664}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "system_prompt": ("STRING", {"default": "", "multiline": True}),
@@ -341,7 +343,7 @@ class OpenRouterTextGeneration:
     CATEGORY = "Nano"
 
     def generate(self, api_key, prompt, model, max_tokens=1024, temperature=0.7, top_p=1.0,
-                system_prompt="", site_url="", app_name="ComfyUI"):
+                seed=0, system_prompt="", site_url="", app_name="ComfyUI"):
         """生成文本响应"""
         
         # 检查API密钥
@@ -487,11 +489,13 @@ class OpenRouterImageEdit:
                 "model": ([
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
-                    "google/gemini-2.5-flash-image-preview"
+                    "google/gemini-2.5-flash-image-preview",
+                    "google/gemini-2.5-flash-image-preview:free"
                 ], {"default": "openai/gpt-4o-mini"}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_tokens": ("INT", {"default": 6664, "min": 1, "max": 6664}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "site_url": ("STRING", {"default": "https://github.com/comfyanonymous/ComfyUI", "multiline": False}),
@@ -505,7 +509,7 @@ class OpenRouterImageEdit:
     CATEGORY = "Nano"
 
     def edit_image(self, api_key, images, prompt, model, temperature=0.7, top_p=1.0, max_tokens=6664,
-                   site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI"):
+                   seed=0, site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI"):
         """编辑图像"""
         
         # 检查API密钥
@@ -688,6 +692,7 @@ class OpenRouterMultimodalImageGeneration:
                 "prompt": ("STRING", {"default": "Generate a beautiful landscape painting", "multiline": True}),
                 "model": ([
                     "google/gemini-2.5-flash-image-preview",
+                    "google/gemini-2.5-flash-image-preview:free",
                     "google/gemini-2.0-flash-preview-image-generation",
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
@@ -697,6 +702,7 @@ class OpenRouterMultimodalImageGeneration:
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_output_tokens": ("INT", {"default": 6664, "min": 1, "max": 32768}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "site_url": ("STRING", {"default": "", "multiline": False}),
@@ -710,7 +716,7 @@ class OpenRouterMultimodalImageGeneration:
     CATEGORY = "Nano"
 
     def generate_image(self, api_key, prompt, model, temperature=1.0, top_p=0.95, max_output_tokens=6664,
-                      site_url="", app_name="ComfyUI"):
+                      seed=0, site_url="", app_name="ComfyUI"):
         """使用多模态模型生成图像"""
         
         # 检查API密钥
