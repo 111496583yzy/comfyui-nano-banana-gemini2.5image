@@ -124,8 +124,21 @@ class ComflyGeminiMirror:
             "required": {
                 "api_key": ("STRING", {"default": "", "multiline": False}),
                 "prompt": ("STRING", {"default": "描述并编辑这些图像，或者生成新图像", "multiline": True}),
-                "model": (["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image-preview"}),
+                "model": (["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image"}),
                 "mode": (["edit", "generate"], {"default": "edit"}),  # 编辑或生成模式
+                "aspect_ratio": ([
+                    "auto",     # 自动选择最佳长宽比
+                    "1:1",      # 正方形
+                    "9:16",     # 竖屏
+                    "16:9",     # 横屏
+                    "3:4",      # 竖屏
+                    "4:3",      # 横屏
+                    "3:2",      # 横屏
+                    "2:3",      # 竖屏
+                    "5:4",      # 横屏
+                    "4:5",      # 竖屏
+                    "21:9",     # 超宽屏
+                ], {"default": "auto"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
@@ -133,6 +146,13 @@ class ComflyGeminiMirror:
             },
             "optional": {
                 "images": ("IMAGE",),
+                "image_1": ("IMAGE",),
+                "image_2": ("IMAGE",),
+                "image_3": ("IMAGE",),
+                "image_4": ("IMAGE",),
+                "image_5": ("IMAGE",),
+                "image_6": ("IMAGE",),
+                "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
             }
         }
         
@@ -141,26 +161,44 @@ class ComflyGeminiMirror:
     FUNCTION = "process"
     CATEGORY = "Nano"
 
-    def process(self, api_key, prompt, model, mode, seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, images=None):
+    def process(self, api_key, prompt, model, mode, aspect_ratio="auto", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, 
+                images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, system_instruction=""):
         """处理请求，根据模式进行编辑或生成"""
         
         # 检查API密钥
         if not validate_api_key(api_key):
             raise ValueError("请提供有效的API密钥")
         
+        # 收集所有图像
+        all_images = []
+        
+        # 处理批次图像（向后兼容）
+        if images is not None:
+            batch_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
+            all_images.extend(batch_images)
+            print(f"📥 从批次图像收到 {len(batch_images)} 张图像")
+        
+        # 处理6个独立的图像输入
+        individual_images = [image_1, image_2, image_3, image_4, image_5, image_6]
+        image_names = ["image_1", "image_2", "image_3", "image_4", "image_5", "image_6"]
+        
+        for i, img in enumerate(individual_images):
+            if img is not None:
+                pil_image = tensor_to_pil(img)
+                all_images.append(pil_image)
+                print(f"📥 收到 {image_names[i]}: {pil_image.size}")
+        
         # 根据模式决定处理方法
         if mode == "edit":
-            if images is None:
+            if not all_images:
                 raise ValueError("编辑模式下需要提供输入图像")
-            return self._process_edit(api_key, images, prompt, model, seed, temperature, top_p, max_output_tokens)
+            return self._process_edit(api_key, all_images, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction)
         else:  # generate
-            return self._process_generate(api_key, prompt, model, seed, temperature, top_p, max_output_tokens)
+            return self._process_generate(api_key, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction)
     
-    def _process_edit(self, api_key, images, prompt, model, seed, temperature, top_p, max_output_tokens):
+    def _process_edit(self, api_key, pil_images, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction=""):
         """处理图像编辑请求"""
         
-        # 将批次图像转换为PIL图像列表
-        pil_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
         print(f"📥 收到 {len(pil_images)} 张图像进行编辑")
         
         # 构建包含多张图像的请求
@@ -188,9 +226,24 @@ class ComflyGeminiMirror:
             "generationConfig": {
                 "temperature": temperature,
                 "topP": top_p,
-                "maxOutputTokens": max_output_tokens
+                "maxOutputTokens": max_output_tokens,
+                "responseModalities": ["IMAGE", "TEXT"]
             }
         }
+        
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig 内部
+        if aspect_ratio != "auto":
+            request_data["generationConfig"]["imageConfig"] = {
+                "aspectRatio": aspect_ratio
+            }
+        
+        # 只有当系统提示词不为空时才添加 systemInstruction
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [
+                    {"text": system_instruction.strip()}
+                ]
+            }
         
         # 设置请求头
         headers = {
@@ -201,7 +254,7 @@ class ComflyGeminiMirror:
         # 发送请求并处理响应
         return self._send_request_and_process(url, headers, request_data, pil_images[0], model)
     
-    def _process_generate(self, api_key, prompt, model, seed, temperature, top_p, max_output_tokens):
+    def _process_generate(self, api_key, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction=""):
         """处理图像生成请求"""
         
         if not prompt.strip():
@@ -222,9 +275,24 @@ class ComflyGeminiMirror:
                 "candidateCount": 1,
                 "temperature": temperature,
                 "topP": top_p,
-                "maxOutputTokens": max_output_tokens
+                "maxOutputTokens": max_output_tokens,
+                "responseModalities": ["IMAGE", "TEXT"]
             }
         }
+        
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig 内部
+        if aspect_ratio != "auto":
+            request_data["generationConfig"]["imageConfig"] = {
+                "aspectRatio": aspect_ratio
+            }
+        
+        # 只有当系统提示词不为空时才添加 systemInstruction
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [
+                    {"text": system_instruction.strip()}
+                ]
+            }
         
         headers = {
             "Content-Type": "application/json",
@@ -329,6 +397,7 @@ class ComflyGeminiMirror:
                 print(f"❌ 处理失败: {error_msg}")
                 raise ValueError(f"处理失败: {error_msg}")
 
+
 # 节点映射
 NODE_CLASS_MAPPINGS = {
     "ComflyGeminiMirror": ComflyGeminiMirror,
@@ -336,4 +405,4 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ComflyGeminiMirror": "Comfly镜像站",
-} 
+}

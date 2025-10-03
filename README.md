@@ -6,6 +6,7 @@
 
 - 🎨 **图像生成**: 使用 Gemini 模型从文本提示生成高质量图像
 - 🖼️ **图像编辑**: 基于输入图像和文本指令进行智能编辑
+- 📐 **长宽比控制**: 支持多种图像尺寸比例 (1:1, 9:16, 16:9, 3:4, 4:3, 3:2, 2:3, 5:4, 4:5, 21:9)
 - 🌐 **镜像站支持**: 支持自定义API地址，适配国内镜像站和代理服务
 - 🤖 **多平台AI**: 支持OpenRouter统一接口，访问GPT-4、Claude、Llama等多种模型
 - 👁️ **视觉分析**: 强大的图像理解和分析能力
@@ -52,6 +53,7 @@ pip install -r requirements.txt
 - `api_key`: Google Gemini API 密钥
 - `prompt`: 图像生成提示词
 - `model`: 选择模型 (gemini-2.5-flash-image-preview 或 gemini-2.0-flash-preview-image-generation)
+- `aspect_ratio`: 图像长宽比 (1:1, 9:16, 16:9, 3:4, 4:3, 3:2, 2:3, 5:4, 4:5, 21:9)
 - `temperature`: 创造性控制 (0.0-2.0)
 - `top_p`: 采样控制 (0.0-1.0)
 - `max_output_tokens`: 最大输出令牌数
@@ -69,6 +71,7 @@ pip install -r requirements.txt
 - `images`: 输入图像 (IMAGE 类型，支持批量)
 - `prompt`: 编辑指令
 - `model`: 选择模型
+- `aspect_ratio`: 图像长宽比 (1:1, 9:16, 16:9, 3:4, 4:3, 3:2, 2:3, 5:4, 4:5, 21:9)
 - `temperature`: 创造性控制
 - `top_p`: 采样控制
 - `max_output_tokens`: 最大输出令牌数
@@ -218,6 +221,21 @@ pip install -r requirements.txt
 
 ## 🔧 技术特性
 
+### 长宽比控制
+
+支持多种图像尺寸比例，满足不同使用场景：
+
+- **1:1** - 正方形，适合社交媒体头像、产品展示
+- **9:16** - 竖屏，适合手机壁纸、短视频
+- **16:9** - 横屏，适合桌面壁纸、视频封面
+- **3:4** - 竖屏，适合海报、宣传图
+- **4:3** - 横屏，适合传统照片比例
+- **3:2** - 横屏，适合摄影作品
+- **2:3** - 竖屏，适合杂志封面
+- **5:4** - 横屏，适合艺术画作
+- **4:5** - 竖屏，适合Instagram帖子
+- **21:9** - 超宽屏，适合电影海报、横幅
+
 ### 智能重试机制
 
 - **指数退避**: 自动调整重试间隔
@@ -261,6 +279,7 @@ requests>=2.25.0      # HTTP 请求
 api_key = "your_gemini_api_key"
 prompt = "A serene mountain landscape at sunset with a lake reflection"
 model = "gemini-2.5-flash-image-preview"
+aspect_ratio = "16:9"  # 横屏比例，适合桌面壁纸
 ```
 
 ### 图像编辑
@@ -269,6 +288,7 @@ model = "gemini-2.5-flash-image-preview"
 # 在 ComfyUI 中添加 "Gemini 图片编辑" 节点
 # 连接输入图像并设置参数:
 prompt = "Add a rainbow in the sky"
+aspect_ratio = "4:3"  # 传统照片比例
 ```
 
 ### 使用镜像站
@@ -279,6 +299,7 @@ prompt = "Add a rainbow in the sky"
 api_url = "https://ai.comfly.chat"  # 或其他镜像站地址
 api_key = "your_api_key"
 prompt = "A beautiful sunset over the ocean"
+aspect_ratio = "21:9"  # 超宽屏比例，适合电影海报
 ```
 
 ### 使用OpenRouter进行图像分析
@@ -310,6 +331,7 @@ system_prompt = "你是一位富有创意的诗人"
 api_key = "sk-or-v1-your_openrouter_api_key"
 prompt = "Generate a majestic dragon flying over a mystical forest at sunset, highly detailed, fantasy art style"
 model = "google/gemini-2.5-flash-image-preview"  # 推荐的Gemini模型
+aspect_ratio = "3:2"  # 摄影作品比例
 temperature = 1.0
 top_p = 0.95
 max_output_tokens = 8192

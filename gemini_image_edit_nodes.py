@@ -67,13 +67,35 @@ class GeminiImageEdit:
         return {
             "required": {
                 "api_key": ("STRING", {"default": "", "multiline": False}),
-                "images": ("IMAGE",),  # 支持批次图像
                 "prompt": ("STRING", {"default": "Describe these images and edit them", "multiline": True}),
-                "model": (["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.0-flash-preview-image-generation"}),
+                "model": (["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image"}),
+                "aspectRatio": ([
+                    "auto",     # 自动选择最佳长宽比
+                    "1:1",      # 正方形
+                    "9:16",     # 竖屏
+                    "16:9",     # 横屏
+                    "3:4",      # 竖屏
+                    "4:3",      # 横屏
+                    "3:2",      # 横屏
+                    "2:3",      # 竖屏
+                    "5:4",      # 横屏
+                    "4:5",      # 竖屏
+                    "21:9",     # 超宽屏
+                ], {"default": "auto"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_output_tokens": ("INT", {"default": 8192, "min": 1, "max": 32768}),
+            },
+            "optional": {
+                "images": ("IMAGE",),
+                "image_1": ("IMAGE",),
+                "image_2": ("IMAGE",),
+                "image_3": ("IMAGE",),
+                "image_4": ("IMAGE",),
+                "image_5": ("IMAGE",),
+                "image_6": ("IMAGE",),
+                "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
             }
         }
         
@@ -82,26 +104,48 @@ class GeminiImageEdit:
     FUNCTION = "process_images"
     CATEGORY = "Nano"
 
-    def process_images(self, api_key, images, prompt, model, seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192):
+    def process_images(self, api_key, prompt, model, aspectRatio="auto", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, system_instruction="", 
+                      images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None):
         """处理图像并返回编辑后的图像和响应文本"""
         
         # 检查API密钥
         if not api_key:
             raise ValueError("请提供有效的Gemini API密钥")
         
-        # 将批次图像转换为PIL图像列表
-        pil_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
-        print(f"📥 收到 {len(pil_images)} 张图像进行处理")
+        # 收集所有图像
+        pil_images = []
+        
+        # 处理批次图像（向后兼容）
+        if images is not None:
+            batch_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
+            pil_images.extend(batch_images)
+            print(f"📥 从批次图像收到 {len(batch_images)} 张图像")
+        
+        # 处理6个独立的图像输入
+        individual_images = [image_1, image_2, image_3, image_4, image_5, image_6]
+        image_names = ["image_1", "image_2", "image_3", "image_4", "image_5", "image_6"]
+        
+        for i, img in enumerate(individual_images):
+            if img is not None:
+                pil_image = tensor_to_pil(img)
+                pil_images.append(pil_image)
+                print(f"📥 收到 {image_names[i]}: {pil_image.size}")
+        
+        if not pil_images:
+            raise ValueError("请至少提供一张图像")
+        
+        print(f"📥 总共收到 {len(pil_images)} 张图像进行处理")
         
         # 使用优化的批量处理模式处理图像
         print(f"🔄 使用优化的批量处理模式处理图像")
         print(f"ℹ️ Received seed {seed}, but the Gemini API does not currently support a seed parameter for image editing.")
-        edited_tensor, response_text = self._process_combined_images(api_key, pil_images, prompt, model, temperature, top_p, max_output_tokens)
+        print(f"📐 使用长宽比: {aspectRatio}")
+        edited_tensor, response_text = self._process_combined_images(api_key, pil_images, prompt, model, aspectRatio, temperature, top_p, max_output_tokens, system_instruction)
         
         return (edited_tensor, response_text)
     
-    def _process_combined_images(self, api_key: str, pil_images: List[Image.Image], prompt: str, model: str,
-                                temperature: float, top_p: float, max_output_tokens: int) -> Tuple[torch.Tensor, str]:
+    def _process_combined_images(self, api_key: str, pil_images: List[Image.Image], prompt: str, model: str, aspectRatio: str,                                                                                         
+                                temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "") -> Tuple[torch.Tensor, str]:
         """处理多张图像（合并发送）"""
         
         # 构建包含多张图像的请求
@@ -122,16 +166,31 @@ class GeminiImageEdit:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         
         # 构建请求数据 - 更新为匹配官方示例的格式
+        generation_config = {
+            "temperature": temperature,
+            "topP": top_p,
+            "maxOutputTokens": max_output_tokens,
+            "responseModalities": ["IMAGE", "TEXT"]
+        }
+        
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig
+        if aspectRatio != "auto":
+            generation_config["imageConfig"] = {
+                "aspectRatio": aspectRatio
+            }
+        
         request_data = {
             "contents": [{
                 "parts": parts
             }],
-            "generationConfig": {
-                "temperature": temperature,
-                "topP": top_p,
-                "maxOutputTokens": max_output_tokens
-            }
+            "generationConfig": generation_config
         }
+        
+        # 添加系统提示词（如果提供）
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [{"text": system_instruction.strip()}]
+            }
         
         # 设置请求头
         headers = {
@@ -239,11 +298,27 @@ class GeminiImageGenerate:
             "required": {
                 "api_key": ("STRING", {"default": "", "multiline": False}),
                 "prompt": ("STRING", {"default": "Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme", "multiline": True}),
-                "model": (["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image-preview"}),
+                "model": (["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image"}),
+                "aspectRatio": ([
+                    "auto",     # 自动选择最佳长宽比
+                    "1:1",      # 正方形
+                    "9:16",     # 竖屏
+                    "16:9",     # 横屏
+                    "3:4",      # 竖屏
+                    "4:3",      # 横屏
+                    "3:2",      # 横屏
+                    "2:3",      # 竖屏
+                    "5:4",      # 横屏
+                    "4:5",      # 竖屏
+                    "21:9",     # 超宽屏
+                ], {"default": "auto"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_output_tokens": ("INT", {"default": 2048, "min": 1, "max": 8192}),
+            },
+            "optional": {
+                "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
             }
         }
         
@@ -252,8 +327,8 @@ class GeminiImageGenerate:
     FUNCTION = "generate_images"
     CATEGORY = "Nano"
 
-    def generate_images(self, api_key: str, prompt: str, model: str, seed: int,
-                        temperature: float, top_p: float, max_output_tokens: int) -> Tuple[torch.Tensor, str]:
+    def generate_images(self, api_key: str, prompt: str, model: str, aspectRatio: str, seed: int,
+                        temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "") -> Tuple[torch.Tensor, str]:
         
         if not validate_api_key(api_key):
             raise ValueError("API Key格式无效或为空")
@@ -262,8 +337,23 @@ class GeminiImageGenerate:
             raise ValueError("提示词不能为空")
 
         print(f"ℹ️ Received seed {seed}, but the Gemini API does not currently support a seed parameter for image generation.")
+        print(f"📐 使用长宽比: {aspectRatio}")
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        
+        generation_config = {
+            "candidateCount": 1,
+            "temperature": temperature,
+            "topP": top_p,
+            "maxOutputTokens": max_output_tokens,
+            "responseModalities": ["IMAGE", "TEXT"]
+        }
+        
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig
+        if aspectRatio != "auto":
+            generation_config["imageConfig"] = {
+                "aspectRatio": aspectRatio
+            }
         
         request_data = {
             "contents": [{
@@ -271,13 +361,16 @@ class GeminiImageGenerate:
                     {"text": prompt.strip()}
                 ]
             }],
-            "generationConfig": {
-                "candidateCount": 1,
-                "temperature": temperature,
-                "topP": top_p,
-                "maxOutputTokens": max_output_tokens
-            }
+            "generationConfig": generation_config
         }
+        
+        # 只有当系统提示词不为空时才添加 systemInstruction
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [
+                    {"text": system_instruction.strip()}
+                ]
+            }
         
         headers = {
             "Content-Type": "application/json",
@@ -369,6 +462,7 @@ class GeminiImageGenerate:
                 error_msg = format_error_message(e)
                 print(f"❌ 生成失败: {error_msg}")
                 raise ValueError(f"图像生成失败: {error_msg}")
+
 
 # 节点映射
 NODE_CLASS_MAPPINGS = {

@@ -142,6 +142,12 @@ class OpenRouterMirror:
             },
             "optional": {
                 "images": ("IMAGE",),
+                "image_1": ("IMAGE",),
+                "image_2": ("IMAGE",),
+                "image_3": ("IMAGE",),
+                "image_4": ("IMAGE",),
+                "image_5": ("IMAGE",),
+                "image_6": ("IMAGE",),
                 "site_url": ("STRING", {"default": "", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
             }
@@ -153,7 +159,8 @@ class OpenRouterMirror:
     CATEGORY = "Nano"
 
     def process(self, api_key, prompt, model, max_tokens=1024, temperature=0.7, top_p=1.0, 
-                images=None, site_url="", app_name="ComfyUI"):
+                images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, 
+                site_url="", app_name="ComfyUI"):
         """处理OpenRouter API请求"""
         
         # 检查API密钥
@@ -169,12 +176,30 @@ class OpenRouterMirror:
             "text": prompt.strip()
         })
         
-        # 如果有图像，添加到消息中
+        # 收集所有图像
+        all_images = []
+        
+        # 处理批次图像（向后兼容）
         if images is not None:
-            pil_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
-            print(f"📥 收到 {len(pil_images)} 张图像进行分析")
+            batch_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
+            all_images.extend(batch_images)
+            print(f"📥 从批次图像收到 {len(batch_images)} 张图像")
+        
+        # 处理6个独立的图像输入
+        individual_images = [image_1, image_2, image_3, image_4, image_5, image_6]
+        image_names = ["image_1", "image_2", "image_3", "image_4", "image_5", "image_6"]
+        
+        for i, img in enumerate(individual_images):
+            if img is not None:
+                pil_image = tensor_to_pil(img)
+                all_images.append(pil_image)
+                print(f"📥 收到 {image_names[i]}: {pil_image.size}")
+        
+        # 如果有图像，添加到消息中
+        if all_images:
+            print(f"📥 收到 {len(all_images)} 张图像进行分析")
             
-            for i, pil_image in enumerate(pil_images):
+            for i, pil_image in enumerate(all_images):
                 # 调整图像大小以满足API限制
                 resized_image = resize_image_for_api(pil_image, max_size=2048)
                 image_base64 = image_to_base64(resized_image, format='JPEG')
@@ -484,13 +509,12 @@ class OpenRouterImageEdit:
         return {
             "required": {
                 "api_key": ("STRING", {"default": "", "multiline": False}),
-                "images": ("IMAGE",),
                 "prompt": ("STRING", {"default": "编辑这张图像，让它更加美观", "multiline": True}),
                 "model": ([
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
-                    "google/gemini-2.5-flash-image-preview",
-                    "google/gemini-2.5-flash-image-preview:free"
+                    "google/gemini-2.5-flash-image",
+                    "google/gemini-2.5-flash-image:free"
                 ], {"default": "openai/gpt-4o-mini"}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
@@ -498,6 +522,13 @@ class OpenRouterImageEdit:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
+                "images": ("IMAGE",),
+                "image_1": ("IMAGE",),
+                "image_2": ("IMAGE",),
+                "image_3": ("IMAGE",),
+                "image_4": ("IMAGE",),
+                "image_5": ("IMAGE",),
+                "image_6": ("IMAGE",),
                 "site_url": ("STRING", {"default": "https://github.com/comfyanonymous/ComfyUI", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
             }
@@ -508,23 +539,44 @@ class OpenRouterImageEdit:
     FUNCTION = "edit_image"
     CATEGORY = "Nano"
 
-    def edit_image(self, api_key, images, prompt, model, temperature=0.7, top_p=1.0, max_tokens=6664,
-                   seed=0, site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI"):
+    def edit_image(self, api_key, prompt, model, temperature=0.7, top_p=1.0, max_tokens=6664,
+                   seed=0, images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
+                   site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI"):
         """编辑图像"""
         
         # 检查API密钥
         if not validate_api_key(api_key):
             raise ValueError("请提供有效的OpenRouter API密钥")
         
-        # 将批次图像转换为PIL图像列表
-        pil_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
-        print(f"📥 收到 {len(pil_images)} 张图像进行编辑")
+        # 收集所有图像
+        all_images = []
+        
+        # 处理批次图像（向后兼容）
+        if images is not None:
+            batch_images = [tensor_to_pil(images[i]) for i in range(images.shape[0])]
+            all_images.extend(batch_images)
+            print(f"📥 从批次图像收到 {len(batch_images)} 张图像")
+        
+        # 处理6个独立的图像输入
+        individual_images = [image_1, image_2, image_3, image_4, image_5, image_6]
+        image_names = ["image_1", "image_2", "image_3", "image_4", "image_5", "image_6"]
+        
+        for i, img in enumerate(individual_images):
+            if img is not None:
+                pil_image = tensor_to_pil(img)
+                all_images.append(pil_image)
+                print(f"📥 收到 {image_names[i]}: {pil_image.size}")
+        
+        if not all_images:
+            raise ValueError("请至少提供一张图像")
+        
+        print(f"📥 总共收到 {len(all_images)} 张图像进行编辑")
         
         # 构建消息内容
         message_content = [{"type": "text", "text": prompt.strip()}]
         
         # 添加图像到消息中
-        for i, pil_image in enumerate(pil_images):
+        for i, pil_image in enumerate(all_images):
             resized_image = resize_image_for_api(pil_image, max_size=2048)
             image_base64 = image_to_base64(resized_image, format='JPEG')
             
@@ -691,14 +743,27 @@ class OpenRouterMultimodalImageGeneration:
                 "api_key": ("STRING", {"default": "", "multiline": False}),
                 "prompt": ("STRING", {"default": "Generate a beautiful landscape painting", "multiline": True}),
                 "model": ([
-                    "google/gemini-2.5-flash-image-preview",
-                    "google/gemini-2.5-flash-image-preview:free",
+                    "google/gemini-2.5-flash-image",
+                    "google/gemini-2.5-flash-image:free",
                     "google/gemini-2.0-flash-preview-image-generation",
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
                     "anthropic/claude-3.5-sonnet",
                     "meta-llama/llama-3.2-90b-vision-instruct"
                 ], {"default": "openai/gpt-4o-mini"}),
+                "aspect_ratio": ([
+                    "auto",     # 自动选择最佳长宽比
+                    "1:1",      # 正方形
+                    "9:16",     # 竖屏
+                    "16:9",     # 横屏
+                    "3:4",      # 竖屏
+                    "4:3",      # 横屏
+                    "3:2",      # 横屏
+                    "2:3",      # 竖屏
+                    "5:4",      # 横屏
+                    "4:5",      # 竖屏
+                    "21:9",     # 超宽屏
+                ], {"default": "auto"}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_output_tokens": ("INT", {"default": 6664, "min": 1, "max": 32768}),
@@ -707,6 +772,7 @@ class OpenRouterMultimodalImageGeneration:
             "optional": {
                 "site_url": ("STRING", {"default": "", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
+                "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
             }
         }
         
@@ -715,8 +781,8 @@ class OpenRouterMultimodalImageGeneration:
     FUNCTION = "generate_image"
     CATEGORY = "Nano"
 
-    def generate_image(self, api_key, prompt, model, temperature=1.0, top_p=0.95, max_output_tokens=6664,
-                      seed=0, site_url="", app_name="ComfyUI"):
+    def generate_image(self, api_key, prompt, model, aspect_ratio="auto", temperature=1.0, top_p=0.95, max_output_tokens=6664,
+                      seed=0, site_url="", app_name="ComfyUI", system_instruction=""):
         """使用多模态模型生成图像"""
         
         # 检查API密钥
@@ -740,6 +806,22 @@ class OpenRouterMultimodalImageGeneration:
             "top_p": top_p,
             "max_tokens": max_output_tokens
         }
+        
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig
+        if aspect_ratio != "auto":
+            request_data["generationConfig"] = {
+                "imageConfig": {
+                    "aspectRatio": aspect_ratio
+                }
+            }
+        
+        # 只有当系统提示词不为空时才添加 systemInstruction
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [
+                    {"text": system_instruction.strip()}
+                ]
+            }
         
         # 构建请求头
         headers = {
@@ -866,18 +948,13 @@ class OpenRouterMultimodalImageGeneration:
                 print(f"❌ 处理失败: {error_msg}")
                 raise ValueError(f"处理失败: {error_msg}")
 
-
 # 节点映射
 NODE_CLASS_MAPPINGS = {
     "OpenRouterMirror": OpenRouterMirror,
-    "OpenRouterTextGeneration": OpenRouterTextGeneration,
     "OpenRouterImageEdit": OpenRouterImageEdit,
-    "OpenRouterMultimodalImageGeneration": OpenRouterMultimodalImageGeneration,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "OpenRouterMirror": "OpenRouter 视觉分析",
-    "OpenRouterTextGeneration": "OpenRouter 文本生成",
     "OpenRouterImageEdit": "OpenRouter 图像编辑",
-    "OpenRouterMultimodalImageGeneration": "OpenRouter 多模态图像生成",
 }
