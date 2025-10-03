@@ -150,6 +150,7 @@ class OpenRouterMirror:
                 "image_6": ("IMAGE",),
                 "site_url": ("STRING", {"default": "", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
+                "mirror_url": ("STRING", {"default": "https://openrouter.ai", "multiline": False, "placeholder": "镜像站地址，默认为OpenRouter官方"}),
             }
         }
         
@@ -160,7 +161,7 @@ class OpenRouterMirror:
 
     def process(self, api_key, prompt, model, max_tokens=1024, temperature=0.7, top_p=1.0, 
                 images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, 
-                site_url="", app_name="ComfyUI"):
+                site_url="", app_name="ComfyUI", mirror_url="https://openrouter.ai"):
         """处理OpenRouter API请求"""
         
         # 检查API密钥
@@ -212,8 +213,10 @@ class OpenRouterMirror:
                 })
                 print(f"📎 添加第 {i+1} 张图像到请求中")
         
-        # 构建API URL
-        url = "https://openrouter.ai/api/v1/chat/completions"
+        # 构建API URL - 使用可配置的镜像站地址
+        # 确保URL格式正确，移除末尾的斜杠
+        base_url = mirror_url.rstrip('/')
+        url = f"{base_url}/api/v1/chat/completions"
         
         # 构建请求数据
         request_data = {
@@ -359,6 +362,7 @@ class OpenRouterTextGeneration:
                 "system_prompt": ("STRING", {"default": "", "multiline": True}),
                 "site_url": ("STRING", {"default": "", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
+                "mirror_url": ("STRING", {"default": "https://openrouter.ai", "multiline": False, "placeholder": "镜像站地址，默认为OpenRouter官方"}),
             }
         }
         
@@ -368,7 +372,7 @@ class OpenRouterTextGeneration:
     CATEGORY = "Nano"
 
     def generate(self, api_key, prompt, model, max_tokens=1024, temperature=0.7, top_p=1.0,
-                seed=0, system_prompt="", site_url="", app_name="ComfyUI"):
+                seed=0, system_prompt="", site_url="", app_name="ComfyUI", mirror_url="https://openrouter.ai"):
         """生成文本响应"""
         
         # 检查API密钥
@@ -391,8 +395,10 @@ class OpenRouterTextGeneration:
             "content": prompt.strip()
         })
         
-        # 构建API URL
-        url = "https://openrouter.ai/api/v1/chat/completions"
+        # 构建API URL - 使用可配置的镜像站地址
+        # 确保URL格式正确，移除末尾的斜杠
+        base_url = mirror_url.rstrip('/')
+        url = f"{base_url}/api/v1/chat/completions"
         
         # 构建请求数据
         request_data = {
@@ -531,6 +537,7 @@ class OpenRouterImageEdit:
                 "image_6": ("IMAGE",),
                 "site_url": ("STRING", {"default": "https://github.com/comfyanonymous/ComfyUI", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
+                "mirror_url": ("STRING", {"default": "https://openrouter.ai", "multiline": False, "placeholder": "镜像站地址，默认为OpenRouter官方"}),
             }
         }
         
@@ -541,7 +548,7 @@ class OpenRouterImageEdit:
 
     def edit_image(self, api_key, prompt, model, temperature=0.7, top_p=1.0, max_tokens=6664,
                    seed=0, images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
-                   site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI"):
+                   site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI", mirror_url="https://openrouter.ai"):
         """编辑图像"""
         
         # 检查API密钥
@@ -588,8 +595,10 @@ class OpenRouterImageEdit:
             })
             print(f"📎 添加第 {i+1} 张图像到编辑请求中")
         
-        # 构建API URL
-        url = "https://openrouter.ai/api/v1/chat/completions"
+        # 构建API URL - 使用可配置的镜像站地址
+        # 确保URL格式正确，移除末尾的斜杠
+        base_url = mirror_url.rstrip('/')
+        url = f"{base_url}/api/v1/chat/completions"
         
         # 构建请求数据
         request_data = {
@@ -773,6 +782,7 @@ class OpenRouterMultimodalImageGeneration:
                 "site_url": ("STRING", {"default": "", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
                 "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
+                "mirror_url": ("STRING", {"default": "https://openrouter.ai", "multiline": False, "placeholder": "镜像站地址，默认为OpenRouter官方"}),
             }
         }
         
@@ -782,15 +792,17 @@ class OpenRouterMultimodalImageGeneration:
     CATEGORY = "Nano"
 
     def generate_image(self, api_key, prompt, model, aspect_ratio="auto", temperature=1.0, top_p=0.95, max_output_tokens=6664,
-                      seed=0, site_url="", app_name="ComfyUI", system_instruction=""):
+                      seed=0, site_url="", app_name="ComfyUI", system_instruction="", mirror_url="https://openrouter.ai"):
         """使用多模态模型生成图像"""
         
         # 检查API密钥
         if not validate_api_key(api_key):
             raise ValueError("请提供有效的OpenRouter API密钥")
         
-        # 构建API URL - 使用chat/completions端点
-        url = "https://openrouter.ai/api/v1/chat/completions"
+        # 构建API URL - 使用可配置的镜像站地址
+        # 确保URL格式正确，移除末尾的斜杠
+        base_url = mirror_url.rstrip('/')
+        url = f"{base_url}/api/v1/chat/completions"
         
         # 构建请求数据 - 使用Gemini的多模态格式
         request_data = {

@@ -352,15 +352,15 @@ site_url = "https://your-project-website.com"  # 可选：你的项目网站
 
 ## 🌐 支持的镜像站
 
-插件支持以下API格式的镜像站：
+插件支持以下API格式的镜像站，**所有镜像站地址都可以在节点中自定义配置**：
 
 ### Gemini 原生格式镜像站
-- `https://ai.comfly.chat` - ComflyAI 镜像站
+- `https://ai.comfly.chat` - ComflyAI 镜像站（默认）
 - `https://api.openai-proxy.com` - 代理服务
 - 其他兼容 Gemini API 格式的镜像服务
 
 ### OpenRouter 统一接口
-- `https://openrouter.ai` - OpenRouter 官方API
+- `https://openrouter.ai` - OpenRouter 官方API（默认）
 - 支持多种AI模型：
   - **文本/视觉模型**:
     - **OpenAI**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo
@@ -372,6 +372,30 @@ site_url = "https://your-project-website.com"  # 可选：你的项目网站
     - **Mistral**: Mistral-7b-instruct
   - **图像生成模型**:
     - **Google Gemini**: gemini-2.5-flash-image-preview, gemini-2.5-flash-image-preview:free (🆓 每天50张), gemini-2.0-flash-preview-image-generation
+
+### 🔧 镜像站配置说明
+
+所有镜像站节点都支持自定义镜像站地址：
+
+1. **ComflyGeminiMirror 节点**：
+   - 默认地址：`https://ai.comfly.chat`
+   - 参数名：`mirror_url`
+   - 支持任何兼容 Gemini API 格式的镜像服务
+
+2. **OpenRouter 系列节点**：
+   - 默认地址：`https://openrouter.ai`
+   - 参数名：`mirror_url`
+   - 支持任何兼容 OpenRouter API 格式的镜像服务
+
+3. **配置示例**：
+   ```
+   # 使用自定义镜像站
+   mirror_url = "https://your-custom-mirror.com"
+   
+   # 使用官方服务
+   mirror_url = "https://openrouter.ai"  # OpenRouter
+   mirror_url = "https://ai.comfly.chat"  # Comfly
+   ```
 
 ## ⚠️ 注意事项
 
