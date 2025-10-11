@@ -519,9 +519,22 @@ class OpenRouterImageEdit:
                 "model": ([
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
+                    "google/gemini-2.5-flash-image-preview",
                     "google/gemini-2.5-flash-image",
-                    "google/gemini-2.5-flash-image:free"
                 ], {"default": "openai/gpt-4o-mini"}),
+                "aspectRatio": ([
+                    "auto",     # 自动选择最佳长宽比
+                    "1:1",      # 正方形
+                    "9:16",     # 竖屏
+                    "16:9",     # 横屏
+                    "3:4",      # 竖屏
+                    "4:3",      # 横屏
+                    "3:2",      # 横屏
+                    "2:3",      # 竖屏
+                    "5:4",      # 横屏
+                    "4:5",      # 竖屏
+                    "21:9",     # 超宽屏
+                ], {"default": "auto"}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_tokens": ("INT", {"default": 6664, "min": 1, "max": 6664}),
@@ -535,6 +548,7 @@ class OpenRouterImageEdit:
                 "image_4": ("IMAGE",),
                 "image_5": ("IMAGE",),
                 "image_6": ("IMAGE",),
+                "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
                 "site_url": ("STRING", {"default": "https://github.com/comfyanonymous/ComfyUI", "multiline": False}),
                 "app_name": ("STRING", {"default": "ComfyUI", "multiline": False}),
                 "mirror_url": ("STRING", {"default": "https://openrouter.ai", "multiline": False, "placeholder": "镜像站地址，默认为OpenRouter官方"}),
@@ -546,9 +560,9 @@ class OpenRouterImageEdit:
     FUNCTION = "edit_image"
     CATEGORY = "Nano"
 
-    def edit_image(self, api_key, prompt, model, temperature=0.7, top_p=1.0, max_tokens=6664,
+    def edit_image(self, api_key, prompt, model, aspectRatio="auto", temperature=0.7, top_p=1.0, max_tokens=6664,
                    seed=0, images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
-                   site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI", mirror_url="https://openrouter.ai"):
+                   system_instruction="", site_url="https://github.com/comfyanonymous/ComfyUI", app_name="ComfyUI", mirror_url="https://openrouter.ai"):
         """编辑图像"""
         
         # 检查API密钥
@@ -619,6 +633,22 @@ class OpenRouterImageEdit:
         if any(gen_model in model for gen_model in ["gemini", "gpt-4o"]):
             request_data["modalities"] = ["image", "text"]
         
+        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig
+        if aspectRatio != "auto":
+            request_data["generationConfig"] = {
+                "imageConfig": {
+                    "aspectRatio": aspectRatio
+                }
+            }
+        
+        # 只有当系统提示词不为空时才添加 systemInstruction
+        if system_instruction and system_instruction.strip():
+            request_data["systemInstruction"] = {
+                "parts": [
+                    {"text": system_instruction.strip()}
+                ]
+            }
+        
         # 构建请求头
         headers = {
             "Authorization": f"Bearer {api_key.strip()}",
@@ -628,7 +658,7 @@ class OpenRouterImageEdit:
         }
         
         # 发送请求并处理响应
-        return self._send_edit_request_and_process(url, headers, request_data, model, pil_images[0])
+        return self._send_edit_request_and_process(url, headers, request_data, model, all_images[0])
     
     def _send_edit_request_and_process(self, url, headers, request_data, model, fallback_image):
         """发送编辑请求并处理响应"""
@@ -753,7 +783,7 @@ class OpenRouterMultimodalImageGeneration:
                 "prompt": ("STRING", {"default": "Generate a beautiful landscape painting", "multiline": True}),
                 "model": ([
                     "google/gemini-2.5-flash-image",
-                    "google/gemini-2.5-flash-image:free",
+                    "google/gemini-2.5-flash-image-preview",
                     "google/gemini-2.0-flash-preview-image-generation",
                     "openai/gpt-4o",
                     "openai/gpt-4o-mini",
