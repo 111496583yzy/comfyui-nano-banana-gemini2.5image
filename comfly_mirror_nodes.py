@@ -124,7 +124,7 @@ class ComflyGeminiMirror:
             "required": {
                 "api_key": ("STRING", {"default": "", "multiline": False}),
                 "prompt": ("STRING", {"default": "描述并编辑这些图像，或者生成新图像", "multiline": True}),
-                "model": (["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"], {"default": "gemini-2.5-flash-image"}),
+                "model": (["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation", "gemini-3-pro-image-preview"], {"default": "gemini-2.5-flash-image"}),
                 "mode": (["edit", "generate"], {"default": "edit"}),  # 编辑或生成模式
                 "aspect_ratio": ([
                     "auto",     # 自动选择最佳长宽比
@@ -143,6 +143,10 @@ class ComflyGeminiMirror:
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "max_output_tokens": ("INT", {"default": 8192, "min": 1, "max": 32768}),
+                "image_size": (["1K", "2K", "4K"], {
+                    "default": "4K",
+                    "tooltip": "图像分辨率（仅适用于 gemini-3-pro-image-preview 模型）"
+                }),
             },
             "optional": {
                 "images": ("IMAGE",),
@@ -162,7 +166,7 @@ class ComflyGeminiMirror:
     FUNCTION = "process"
     CATEGORY = "Nano"
 
-    def process(self, api_key, prompt, model, mode, aspect_ratio="auto", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, 
+    def process(self, api_key, prompt, model, mode, aspect_ratio="auto", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, image_size="4K",
                 images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, system_instruction="", mirror_url="https://ai.comfly.chat"):
         """处理请求，根据模式进行编辑或生成"""
         
@@ -193,14 +197,19 @@ class ComflyGeminiMirror:
         if mode == "edit":
             if not all_images:
                 raise ValueError("编辑模式下需要提供输入图像")
-            return self._process_edit(api_key, all_images, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
+            return self._process_edit(api_key, all_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
         else:  # generate
-            return self._process_generate(api_key, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
+            return self._process_generate(api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
     
-    def _process_edit(self, api_key, pil_images, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
+    def _process_edit(self, api_key, pil_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
         """处理图像编辑请求"""
         
         print(f"📥 收到 {len(pil_images)} 张图像进行编辑")
+        
+        # 检查是否为 gemini-3-pro-image-preview 模型
+        is_gemini_3_pro = (model == "gemini-3-pro-image-preview")
+        if is_gemini_3_pro:
+            print(f"📏 使用图像分辨率: {image_size}")
         
         # 构建包含多张图像的请求
         parts = [{"text": prompt.strip()}]
@@ -234,11 +243,21 @@ class ComflyGeminiMirror:
             }
         }
         
-        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig 内部
-        if aspect_ratio != "auto":
-            request_data["generationConfig"]["imageConfig"] = {
-                "aspectRatio": aspect_ratio
+        # 根据模型类型设置图像配置
+        if is_gemini_3_pro:
+            # gemini-3-pro-image-preview 同时支持 aspectRatio 和 image_size
+            image_config = {
+                "image_size": image_size
             }
+            if aspect_ratio != "auto":
+                image_config["aspectRatio"] = aspect_ratio
+            request_data["generationConfig"]["imageConfig"] = image_config
+        else:
+            # 其他模型使用 aspectRatio
+            if aspect_ratio != "auto":
+                request_data["generationConfig"]["imageConfig"] = {
+                    "aspectRatio": aspect_ratio
+                }
         
         # 只有当系统提示词不为空时才添加 systemInstruction
         if system_instruction and system_instruction.strip():
@@ -257,11 +276,16 @@ class ComflyGeminiMirror:
         # 发送请求并处理响应
         return self._send_request_and_process(url, headers, request_data, pil_images[0], model)
     
-    def _process_generate(self, api_key, prompt, model, aspect_ratio, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
+    def _process_generate(self, api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
         """处理图像生成请求"""
         
         if not prompt.strip():
             raise ValueError("提示词不能为空")
+        
+        # 检查是否为 gemini-3-pro-image-preview 模型
+        is_gemini_3_pro = (model == "gemini-3-pro-image-preview")
+        if is_gemini_3_pro:
+            print(f"📏 使用图像分辨率: {image_size}")
         
         print(f"ℹ️ 使用种子 {seed}, 但注意 Gemini API 当前不支持种子参数")
         
@@ -285,11 +309,21 @@ class ComflyGeminiMirror:
             }
         }
         
-        # 只有当长宽比不是 "auto" 时才添加 imageConfig 到 generationConfig 内部
-        if aspect_ratio != "auto":
-            request_data["generationConfig"]["imageConfig"] = {
-                "aspectRatio": aspect_ratio
+        # 根据模型类型设置图像配置
+        if is_gemini_3_pro:
+            # gemini-3-pro-image-preview 同时支持 aspectRatio 和 image_size
+            image_config = {
+                "image_size": image_size
             }
+            if aspect_ratio != "auto":
+                image_config["aspectRatio"] = aspect_ratio
+            request_data["generationConfig"]["imageConfig"] = image_config
+        else:
+            # 其他模型使用 aspectRatio
+            if aspect_ratio != "auto":
+                request_data["generationConfig"]["imageConfig"] = {
+                    "aspectRatio": aspect_ratio
+                }
         
         # 只有当系统提示词不为空时才添加 systemInstruction
         if system_instruction and system_instruction.strip():

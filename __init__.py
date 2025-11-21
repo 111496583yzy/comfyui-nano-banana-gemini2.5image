@@ -60,6 +60,16 @@ except ImportError as e:
     OPENROUTER_MIRROR_DISPLAY_MAPPINGS = {}
     OPENROUTER_MIRROR_AVAILABLE = False
 
+# 添加图像处理节点
+try:
+    from .image_process_nodes import NODE_CLASS_MAPPINGS as IMAGE_PROCESS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as IMAGE_PROCESS_DISPLAY_MAPPINGS
+    IMAGE_PROCESS_AVAILABLE = True
+except ImportError as e:
+    print(f"Image process nodes not available: {e}")
+    IMAGE_PROCESS_MAPPINGS = {}
+    IMAGE_PROCESS_DISPLAY_MAPPINGS = {}
+    IMAGE_PROCESS_AVAILABLE = False
+
 # 批次节点已合并到图像编辑节点中
 
 # 合并所有节点映射
@@ -90,6 +100,10 @@ if OPENROUTER_MIRROR_AVAILABLE:
     NODE_CLASS_MAPPINGS.update(OPENROUTER_MIRROR_MAPPINGS)
     NODE_DISPLAY_NAME_MAPPINGS.update(OPENROUTER_MIRROR_DISPLAY_MAPPINGS)
 
+if IMAGE_PROCESS_AVAILABLE:
+    NODE_CLASS_MAPPINGS.update(IMAGE_PROCESS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(IMAGE_PROCESS_DISPLAY_MAPPINGS)
+
 # 批次处理功能已集成到图像编辑节点中
 
 # 导出给 ComfyUI
@@ -109,5 +123,7 @@ if COMFLY_MIRROR_AVAILABLE:
     print("✅ Comfly Mirror nodes available")
 if OPENROUTER_MIRROR_AVAILABLE:
     print("✅ OpenRouter Mirror nodes available")
-if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not COMFLY_MIRROR_AVAILABLE and not OPENROUTER_MIRROR_AVAILABLE:
+if IMAGE_PROCESS_AVAILABLE:
+    print("✅ Image process nodes available")
+if not ORIGINAL_AVAILABLE and not VERTEX_AVAILABLE and not REST_AVAILABLE and not IMAGE_EDIT_AVAILABLE and not COMFLY_MIRROR_AVAILABLE and not OPENROUTER_MIRROR_AVAILABLE and not IMAGE_PROCESS_AVAILABLE:
     print("⚠️ No nodes available - check dependencies")
