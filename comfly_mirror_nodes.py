@@ -158,6 +158,7 @@ class ComflyGeminiMirror:
                 "image_6": ("IMAGE",),
                 "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
                 "mirror_url": ("STRING", {"default": "https://ai.comfly.chat", "multiline": False, "placeholder": "镜像站地址，默认为Comfly"}),
+                "enable_google_search": ("BOOLEAN", {"default": False, "tooltip": "启用 Google Search 工具，允许模型进行联网搜索"}),
             }
         }
         
@@ -167,7 +168,7 @@ class ComflyGeminiMirror:
     CATEGORY = "Nano"
 
     def process(self, api_key, prompt, model, mode, aspect_ratio="auto", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, image_size="4K",
-                images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, system_instruction="", mirror_url="https://ai.comfly.chat"):
+                images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None, system_instruction="", mirror_url="https://ai.comfly.chat", enable_google_search=False):
         """处理请求，根据模式进行编辑或生成"""
         
         # 检查API密钥
@@ -197,11 +198,11 @@ class ComflyGeminiMirror:
         if mode == "edit":
             if not all_images:
                 raise ValueError("编辑模式下需要提供输入图像")
-            return self._process_edit(api_key, all_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
+            return self._process_edit(api_key, all_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url, enable_google_search)
         else:  # generate
-            return self._process_generate(api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url)
+            return self._process_generate(api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction, mirror_url, enable_google_search)
     
-    def _process_edit(self, api_key, pil_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
+    def _process_edit(self, api_key, pil_images, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat", enable_google_search=False):
         """处理图像编辑请求"""
         
         print(f"📥 收到 {len(pil_images)} 张图像进行编辑")
@@ -267,6 +268,14 @@ class ComflyGeminiMirror:
                 ]
             }
         
+        # 添加 Google Search 工具（如果启用）
+        if enable_google_search:
+            request_data["tools"] = [
+                {
+                    "googleSearch": {}
+                }
+            ]
+        
         # 设置请求头
         headers = {
             "Content-Type": "application/json",
@@ -276,7 +285,7 @@ class ComflyGeminiMirror:
         # 发送请求并处理响应
         return self._send_request_and_process(url, headers, request_data, pil_images[0], model)
     
-    def _process_generate(self, api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat"):
+    def _process_generate(self, api_key, prompt, model, aspect_ratio, image_size, seed, temperature, top_p, max_output_tokens, system_instruction="", mirror_url="https://ai.comfly.chat", enable_google_search=False):
         """处理图像生成请求"""
         
         if not prompt.strip():
@@ -286,6 +295,8 @@ class ComflyGeminiMirror:
         is_gemini_3_pro = (model == "gemini-3-pro-image-preview")
         if is_gemini_3_pro:
             print(f"📏 使用图像分辨率: {image_size}")
+        if enable_google_search:
+            print(f"🔍 已启用 Google Search 工具")
         
         print(f"ℹ️ 使用种子 {seed}, 但注意 Gemini API 当前不支持种子参数")
         
@@ -332,6 +343,14 @@ class ComflyGeminiMirror:
                     {"text": system_instruction.strip()}
                 ]
             }
+        
+        # 添加 Google Search 工具（如果启用）
+        if enable_google_search:
+            request_data["tools"] = [
+                {
+                    "googleSearch": {}
+                }
+            ]
         
         headers = {
             "Content-Type": "application/json",

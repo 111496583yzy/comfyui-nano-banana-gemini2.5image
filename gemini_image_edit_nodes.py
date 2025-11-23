@@ -108,6 +108,7 @@ class GeminiImageEdit:
                 "image_13": ("IMAGE",),
                 "image_14": ("IMAGE",),
                 "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
+                "enable_google_search": ("BOOLEAN", {"default": False, "tooltip": "启用 Google Search 工具，允许模型进行联网搜索"}),
             }
         }
         
@@ -118,7 +119,7 @@ class GeminiImageEdit:
 
     def process_images(self, api_key, prompt, model, aspectRatio="auto", image_size="4K", seed=0, temperature=1.0, top_p=0.95, max_output_tokens=8192, system_instruction="", 
                       images=None, image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
-                      image_7=None, image_8=None, image_9=None, image_10=None, image_11=None, image_12=None, image_13=None, image_14=None):
+                      image_7=None, image_8=None, image_9=None, image_10=None, image_11=None, image_12=None, image_13=None, image_14=None, enable_google_search=False):
         """处理图像并返回编辑后的图像和响应文本"""
         
         # 检查API密钥
@@ -165,12 +166,14 @@ class GeminiImageEdit:
         print(f"📐 使用长宽比: {aspectRatio}")
         if model == "gemini-3-pro-image-preview":
             print(f"📏 使用图像分辨率: {image_size}")
-        edited_tensor, response_text = self._process_combined_images(api_key, pil_images, prompt, model, aspectRatio, image_size, temperature, top_p, max_output_tokens, system_instruction)
+        if enable_google_search:
+            print(f"🔍 已启用 Google Search 工具")
+        edited_tensor, response_text = self._process_combined_images(api_key, pil_images, prompt, model, aspectRatio, image_size, temperature, top_p, max_output_tokens, system_instruction, enable_google_search)
         
         return (edited_tensor, response_text)
     
     def _process_combined_images(self, api_key: str, pil_images: List[Image.Image], prompt: str, model: str, aspectRatio: str, image_size: str,                                                                                         
-                                temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "") -> Tuple[torch.Tensor, str]:
+                                temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "", enable_google_search: bool = False) -> Tuple[torch.Tensor, str]:
         """处理多张图像（合并发送）"""
         
         # 构建包含多张图像的请求
@@ -232,6 +235,14 @@ class GeminiImageEdit:
             request_data["systemInstruction"] = {
                 "parts": [{"text": system_instruction.strip()}]
             }
+        
+        # 添加 Google Search 工具（如果启用）
+        if enable_google_search:
+            request_data["tools"] = [
+                {
+                    "googleSearch": {}
+                }
+            ]
         
         # 设置请求头 - gemini-3-pro-image-preview 使用 key 参数而不是 x-goog-api-key
         if is_gemini_3_pro:
@@ -546,6 +557,7 @@ class GeminiImageGenerate:
             },
             "optional": {
                 "system_instruction": ("STRING", {"default": "", "multiline": True, "placeholder": "可选：系统提示词，为空时不发送"}),
+                "enable_google_search": ("BOOLEAN", {"default": False, "tooltip": "启用 Google Search 工具，允许模型进行联网搜索"}),
             }
         }
         
@@ -555,7 +567,7 @@ class GeminiImageGenerate:
     CATEGORY = "Nano"
 
     def generate_images(self, api_key: str, prompt: str, model: str, aspectRatio: str, image_size: str, seed: int,
-                        temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "") -> Tuple[torch.Tensor, str]:
+                        temperature: float, top_p: float, max_output_tokens: int, system_instruction: str = "", enable_google_search: bool = False) -> Tuple[torch.Tensor, str]:
         
         if not validate_api_key(api_key):
             raise ValueError("API Key格式无效或为空")
@@ -567,6 +579,8 @@ class GeminiImageGenerate:
         print(f"📐 使用长宽比: {aspectRatio}")
         if model == "gemini-3-pro-image-preview":
             print(f"📏 使用图像分辨率: {image_size}")
+        if enable_google_search:
+            print(f"🔍 已启用 Google Search 工具")
 
         # 根据模型类型选择API端点
         is_gemini_3_pro = (model == "gemini-3-pro-image-preview")
@@ -616,6 +630,14 @@ class GeminiImageGenerate:
                     {"text": system_instruction.strip()}
                 ]
             }
+        
+        # 添加 Google Search 工具（如果启用）
+        if enable_google_search:
+            request_data["tools"] = [
+                {
+                    "googleSearch": {}
+                }
+            ]
         
         # 根据模型类型设置请求头和URL
         if is_gemini_3_pro:
