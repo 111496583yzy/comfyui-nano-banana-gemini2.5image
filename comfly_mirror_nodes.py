@@ -456,11 +456,171 @@ class ComflyGeminiMirror:
                 raise ValueError(f"处理失败: {error_msg}")
 
 
+
+class NanoBananaNode:
+    """Nano Banana 图像生成与编辑节点"""
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "api_key": ("STRING", {"default": "", "multiline": False}),
+                "prompt": ("STRING", {"default": "Describe the image you want to generate", "multiline": True}),
+                "model": (["nano-banana-2", "nano-banana", "nano-banana-hd"], {"default": "nano-banana-2"}),
+                "aspect_ratio": ([
+                    "auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+                ], {"default": "auto"}),
+                "image_size": (["1K", "2K", "4K"], {"default": "1K", "tooltip": "仅适用于 nano-banana-2 和 nano-banana-hd"}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "images": ("IMAGE",),
+                "image_1": ("IMAGE",),
+                "image_2": ("IMAGE",),
+                "image_3": ("IMAGE",),
+                "image_4": ("IMAGE",),
+                "image_5": ("IMAGE",),
+                "image_6": ("IMAGE",),
+                "image_7": ("IMAGE",),
+                "image_8": ("IMAGE",),
+                "image_9": ("IMAGE",),
+                "image_10": ("IMAGE",),
+                "image_11": ("IMAGE",),
+                "image_12": ("IMAGE",),
+                "image_13": ("IMAGE",),
+                "image_14": ("IMAGE",),
+                "mirror_url": ("STRING", {"default": "https://api.302.ai", "multiline": False, "placeholder": "镜像站地址"}),
+            }
+        }
+        
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("output_image",)
+    FUNCTION = "process"
+    CATEGORY = "Nano"
+
+    def process(self, api_key, prompt, model, aspect_ratio="auto", image_size="1K", seed=0, images=None, 
+                image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
+                image_7=None, image_8=None, image_9=None, image_10=None, image_11=None, image_12=None, image_13=None, image_14=None,
+                mirror_url="https://api.302.ai"):
+        if not validate_api_key(api_key):
+            raise ValueError("请提供有效的API密钥")
+
+        # 准备请求数据
+        files = []
+        data = {
+            "model": model,
+            "prompt": prompt,
+            "response_format": "b64_json", # 强制使用 base64 返回以便直接处理
+            "seed": seed
+        }
+        
+        # 只有当 aspect_ratio 不为 auto 时才添加
+        if aspect_ratio != "auto":
+            data["aspect_ratio"] = aspect_ratio
+
+        # 特定模型参数处理
+        if model in ["nano-banana-2", "nano-banana-hd"]:
+            data["image_size"] = image_size
+
+        # 收集所有图像
+        all_pil_images = []
+        
+        # 处理批次图像
+        if images is not None:
+            batch_images = batch_tensor_to_pil_list(images)
+            all_pil_images.extend(batch_images)
+            print(f"📥 从批次图像收到 {len(batch_images)} 张图像")
+            
+        # 处理独立图像输入
+        individual_images = [
+            image_1, image_2, image_3, image_4, image_5, image_6,
+            image_7, image_8, image_9, image_10, image_11, image_12, image_13, image_14
+        ]
+        for i, img in enumerate(individual_images):
+            if img is not None:
+                pil_image = tensor_to_pil(img)
+                all_pil_images.append(pil_image)
+                print(f"📥 收到独立图像 input_{i+1}")
+
+        # 将所有图片添加到请求中
+        for i, img in enumerate(all_pil_images):
+            # 将 PIL 图片转为二进制流
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='JPEG')
+            img_byte_arr = img_byte_arr.getvalue()
+            # requests 的 files 参数格式: (filename, fileobj, content_type)
+            files.append(('image', (f'image_{i}.jpg', img_byte_arr, 'image/jpeg')))
+            print(f"📎 添加第 {i+1} 张参考图")
+
+        # 构建 URL
+        base_url = mirror_url.rstrip('/')
+        url = f"{base_url}/v1/images/edits"
+
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+
+        print(f"🌐 发送请求到: {url} 使用模型: {model}")
+        print(f"📦 请求参数: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
+        try:
+            # 发送 POST 请求
+            # 注意：使用了 files 参数后，requests 会自动设置 Content-Type 为 multipart/form-data
+            response = requests.post(url, headers=headers, data=data, files=files if files else None, timeout=120)
+            
+            if response.status_code != 200:
+                try:
+                    error_json = response.json()
+                    error_msg = error_json.get('error', {}).get('message', response.text)
+                except:
+                    error_msg = response.text
+                raise ValueError(f"API请求失败 (Status {response.status_code}): {error_msg}")
+
+            result = response.json()
+            
+            processed_images = []
+            if "data" in result:
+                for item in result["data"]:
+                    if "b64_json" in item:
+                        try:
+                            image_data = base64.b64decode(item["b64_json"])
+                            processed_image = Image.open(io.BytesIO(image_data))
+                            processed_images.append(processed_image)
+                        except Exception as e:
+                            print(f"⚠️ 解码图片失败: {e}")
+                    elif "url" in item:
+                        # 如果 API 忽略了 response_format=b64_json 返回了 URL
+                        try:
+                            img_response = requests.get(item["url"])
+                            processed_image = Image.open(io.BytesIO(img_response.content))
+                            processed_images.append(processed_image)
+                        except Exception as e:
+                            print(f"⚠️ 下载图片失败: {e}")
+
+            if not processed_images:
+                raise ValueError("未收到有效的图片数据")
+
+            # 转换为 tensor
+            if len(processed_images) == 1:
+                image_tensor = pil_to_tensor(processed_images[0])
+            else:
+                tensors = [pil_to_tensor(img) for img in processed_images]
+                image_tensor = torch.stack(tensors, dim=0)
+                
+            return (image_tensor,)
+
+        except Exception as e:
+            print(f"❌ 处理失败: {e}")
+            raise e
+
+
 # 节点映射
 NODE_CLASS_MAPPINGS = {
     "ComflyGeminiMirror": ComflyGeminiMirror,
+    "NanoBananaNode": NanoBananaNode,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ComflyGeminiMirror": "Comfly镜像站",
+    "NanoBananaNode": "Nano Banana (Comfly镜像站)",
 }
